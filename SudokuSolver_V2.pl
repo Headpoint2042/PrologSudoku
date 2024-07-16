@@ -1,12 +1,12 @@
 % Sudoku Solver file
 solveSudoku(Grid, Solution) :-
-copyGrid(Grid, IntermidiateRepresentation),
+copyGrid(Grid, IntermediateRepresentation),
 writeln('Copy Grid finished'),
-solvingIR(IntermidiateRepresentation, IntermidiateRepresentation2),
-transformIR(IntermidiateRepresentation2, Solution).
+solvingIR(IntermediateRepresentation, IntermediateRepresentation2),
+transformIR(IntermediateRepresentation2, Solution).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%        INTERMIDIATE REPRESENTATION CREATION           %%%%%%%%%%%%
+%%%%%%%%%%%%%%        INTERMEDIATE REPRESENTATION CREATION           %%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 copyGrid([], []).
 copyGrid([Row|Rest], [SolRow|SolRest]) :- copyRow(Row, SolRow), copyGrid(Rest, SolRest). 
@@ -19,43 +19,56 @@ isAll([1, 2, 3, 4, 5, 6, 7, 8, 9]).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%           INTERMIDIATE REPRESENTATION SOLVING         %%%%%%%%%%%%
+%%%%%%%%%%%%%%           INTERMEDIATE REPRESENTATION SOLVING         %%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-solvingIR(Grid, NewGrid) :- writeln('before'), (\+ transformIR(Grid, _)), writeln('after'), !, checkGrid(Grid, 0, 0, IntermidiateGrid), writeln("Grid"), solvingIR(IntermidiateGrid, NewGrid). 
+solvingIR(Grid, NewGrid) :- 
+    (\+ transformIR(Grid, _)),
+    !, 
+    checkGrid(Grid, 0, 0, IntermediateGrid),
+    checkGrid2(IntermediateGrid, 0, 0, IntermediateGrid2) 
+    solvingIR(IntermediateGrid2, NewGrid).
 solvingIR(Grid, Grid).
 
-checkGrid(Grid, _, 9, Grid).
-checkGrid(Grid, 9, Y, NewGrid) :- Y1 is Y+1, checkGrid(Grid, 0, Y1, NewGrid).
-checkGrid(Grid, X, Y, NewGrid) :- writeln('something'), nth0(X, Grid, Row),
-    nth0(Y, Row, Elem), length(Elem, ElemLength), ElemLength = 1, writeln(X), renewGrid(Grid, X, Y, IntermidiateGrid), X1 is X+1, checkGrid(IntermidiateGrid, X1, Y, NewGrid).
-
+checkGrid(Grid, _, 9, Grid) :-
+    !.
+checkGrid(Grid, 9, Y, NewGrid) :- 
+    Y1 is Y + 1, 
+    checkGrid(Grid, 0, Y1, NewGrid), !.
+checkGrid(Grid, X, Y, NewGrid) :- 
+    (nth0(X, Grid, Row),
+    nth0(Y, Row, Elem),
+    length(Elem, 1)), 
+    !,
+    renewGrid(Grid, X, Y, IntermediateGrid), 
+    X1 is X + 1, 
+    checkGrid(IntermediateGrid, X1, Y, NewGrid).
+checkGrid(Grid, X, Y, NewGrid) :- 
+    X1 is X + 1, 
+    checkGrid(Grid, X1, Y, NewGrid).
 
 renewGrid(Grid, X, Y, NewGrid) :- 
     nth0(X, Grid, Row),
     nth0(Y, Row, Elem),
-    length(Elem, ElemLength), ElemLength = 1,
-    removeListsElem(Row, Elem, NewRow),
-    writeln('removed row'),
+    length(Elem, 1),
+    nth0(0, Elem, Num),
+    removeListsElem(Row, Num, NewRow),
     updateGrid(Grid, X, NewRow, Grid2),
-    writeln('row, updated'),
     transpose(Grid2, TGrid),
     nth0(Y, TGrid, Col),
-    removeListsElem(Col, Elem, NewCol),
+    removeListsElem(Col, Num, NewCol),
     updateGrid(TGrid, Y, NewCol, TGrid2),
     transpose(TGrid2, Grid3),
     getSquares(Grid3, Squares),
-    writeln('got squares'),
     ResultX is X div 3,
     ResultY is Y div 3,
-    Result is 3 * ResultX,
-    Res is ResultY + Result,
-    nth0(Res, Squares, Square),
-    writeln('got square'),
-    removeSquareElem(Square, Elem, NewSquare),
-    replace(Res, NewSquare, Squares, NewSquares),
+    Result is 3 * ResultX + ResultY,
+    nth0(Result, Squares, Square),
+    removeSquareElem(Square, Num, NewSquare),
+    replace(Result, NewSquare, Squares, NewSquares),
     gridFromSquares(NewSquares, NewGrid),
-    writeln('renewed').
+    writeln(['Renewed', X, ', ', Y, NewGrid]).
+
 
 
 transpose([], []).
@@ -79,30 +92,43 @@ replace(Index, NewElement, [Head|Tail], [Head|NewTail]) :- Index1 is Index - 1,
 
 
 gridFromSquares([], []).
-gridFromSquares([[X1, X2, X3], [X4, X5, X6], [X7, X8, X9] | Rest], [Row1, Row2, Row3 | RestGrid]) :- append(X1, X4, X14), append(X14, X7, Row1),  append(X2, X5, X25), append(X25, X8, Row2), append(X3, X6, X36), append(X36, X9, Row3), gridFromSquares(Rest, RestGrid).
+gridFromSquares([[X1, X2, X3], [X4, X5, X6], [X7, X8, X9] | RestSquares], [Row1, Row2, Row3 | RestGrid]) :-
+    append(X1, X4, X14),
+    append(X14, X7, Row1),
+    append(X2, X5, X25),
+    append(X25, X8, Row2),
+    append(X3, X6, X36),
+    append(X36, X9, Row3),
+    gridFromSquares(RestSquares, RestGrid).
 
 
-updateGrid([_|RestRows], 0, NewRow, [NewRow|RestRows]).
+updateGrid([_|RestRows], 0, NewRow, [NewRow|RestRows]) :- !.
 updateGrid([Row|RestRows], X, NewRow, [Row|UpRestRows]) :- X1 is X - 1, updateGrid(RestRows, X1, NewRow, UpRestRows). 
 
 
-
-
-
 removeListsElem([], _, []).
-removeListsElem([RowElem|Rest], Elem, [NewRowElem|NewRest]) :- deleteList(RowElem, Elem, NewRowElem), writeln('deleted'), removeListsElem(Rest, Elem, NewRest).
+removeListsElem([RowElem|Rest], Elem, [NewRowElem|NewRest]) :- deleteList(RowElem, Elem, NewRowElem), removeListsElem(Rest, Elem, NewRest).
 
-deleteList([X], _, [X]).
+deleteList([X], _, [X]) :- !.
 deleteList(List, Elem, NewList) :- delete(List, Elem, NewList).
 
 removeSquareElem([], _, []).
 removeSquareElem([Row|RowRest], Elem, [NewRow|NewRowRest]) :- removeListsElem(Row, Elem, NewRow), removeSquareElem(RowRest, Elem, NewRowRest).
 
 getSquares([], []).
-getSquares([Row1, Row2, Row3 | RestRows], [Squares|RestSquares]) :- getSquaresRows([Row1, Row2, Row3], Squares), getSquares(RestRows, RestSquares).
+getSquares([Row1, Row2, Row3 | RestRows], Res) :- getSquaresRows([Row1, Row2, Row3], Squares), getSquares(RestRows, RestSquares), append(Squares, RestSquares, Res).
 
 getSquaresRows([[], [], []], []).
-getSquaresRows([[X1, X2, X3| Row1], [X4, X5, X6| Row2], [X7, X8, X9| Row3]], ResSquares) :- getSquaresRows([Row1, Row2, Row3], RestSquares), append([[[X1, X2, X3], [X4, X5, X6], [X7, X8, X9]]], RestSquares, ResSquares ).
+getSquaresRows([[X1, X2, X3| Row1], [X4, X5, X6| Row2], [X7, X8, X9| Row3]], [[[X1, X2, X3], [X4, X5, X6], [X7, X8, X9]] | RestSquares]) :- getSquaresRows([Row1, Row2, Row3], RestSquares).
+
+
+
+
+
+
+
+
+checkGrid2(Grid, 0, 0, NewGrid)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
