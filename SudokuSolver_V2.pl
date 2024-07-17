@@ -26,8 +26,7 @@ solvingIR(Grid, NewGrid) :-
     (\+ transformIR(Grid, _)),
     !, 
     checkGrid(Grid, 0, 0, IntermediateGrid),
-    checkGrid2(IntermediateGrid, 0, 0, IntermediateGrid2) 
-    solvingIR(IntermediateGrid2, NewGrid).
+    solvingIR(IntermediateGrid, NewGrid).
 solvingIR(Grid, Grid).
 
 checkGrid(Grid, _, 9, Grid) :-
@@ -44,8 +43,9 @@ checkGrid(Grid, X, Y, NewGrid) :-
     X1 is X + 1, 
     checkGrid(IntermediateGrid, X1, Y, NewGrid).
 checkGrid(Grid, X, Y, NewGrid) :- 
+    checkGrid2(Grid, X, Y, IntermediateGrid)
     X1 is X + 1, 
-    checkGrid(Grid, X1, Y, NewGrid).
+    checkGrid(IntermediateGrid, X1, Y, NewGrid).
 
 renewGrid(Grid, X, Y, NewGrid) :- 
     nth0(X, Grid, Row),
@@ -128,7 +128,36 @@ getSquaresRows([[X1, X2, X3| Row1], [X4, X5, X6| Row2], [X7, X8, X9| Row3]], [[[
 
 
 
-checkGrid2(Grid, 0, 0, NewGrid)
+checkGrid2(Grid, X, Y, NewGrid) :- 
+    nth0(X, Grid, Row),
+    nth0(Y, Row, Cell),
+    delete_at(Y, Row, NewRow),
+    checkList(Cell, NewRow, NewCell),
+    length(NewCell, 1),
+    delete_at(Y, UpdatedRow, NewRow),
+    nth0(Y, UpdatedRow, NewCell),
+    updateGrid(Grid, X, UpdatedRow, NewGrid), !.
+
+checkGrid2(Grid, X, Y, NewGrid) :-
+    transpose(Grid, TGrid), 
+    nth0(Y, TGrid, Row),
+    nth0(X, Row, Cell),
+    delete_at(X, Row, NewRow),
+    checkList(Cell, NewRow, NewCell),
+    length(NewCell, 1),
+    delete_at(X, UpdatedRow, NewRow),
+    nth0(X, UpdatedRow, NewCell),
+    updateGrid(TGrid, Y, UpdatedRow, NewTGrid),
+    transpose(NewTGrid, NewGrid), !.
+
+
+delete_at(0, [_|Tail], Tail) :- !.
+
+delete_at(Index, [Head|Tail], [Head|NewTail]) :-
+    Index > 0,
+    NewIndex is Index - 1,
+    delete_at(NewIndex, Tail, NewTail).
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
