@@ -1,7 +1,6 @@
 % Sudoku Solver file
 solveSudoku(Grid, Solution) :-
 copyGrid(Grid, IntermediateRepresentation),
-writeln('Copy Grid finished'),
 solvingIR(IntermediateRepresentation, IntermediateRepresentation2),
 transformIR(IntermediateRepresentation2, Solution).
 
@@ -43,7 +42,7 @@ checkGrid(Grid, X, Y, NewGrid) :-
     X1 is X + 1, 
     checkGrid(IntermediateGrid, X1, Y, NewGrid).
 checkGrid(Grid, X, Y, NewGrid) :- 
-    checkGrid2(Grid, X, Y, IntermediateGrid)
+    checkGrid2(Grid, X, Y, IntermediateGrid),
     X1 is X + 1, 
     checkGrid(IntermediateGrid, X1, Y, NewGrid).
 
@@ -66,8 +65,7 @@ renewGrid(Grid, X, Y, NewGrid) :-
     nth0(Result, Squares, Square),
     removeSquareElem(Square, Num, NewSquare),
     replace(Result, NewSquare, Squares, NewSquares),
-    gridFromSquares(NewSquares, NewGrid),
-    writeln(['Renewed', X, ', ', Y, NewGrid]).
+    gridFromSquares(NewSquares, NewGrid).
 
 
 
@@ -123,8 +121,11 @@ getSquaresRows([[X1, X2, X3| Row1], [X4, X5, X6| Row2], [X7, X8, X9| Row3]], [[[
 
 
 
+checkList(X, [], X).
+checkList(Cell, [RowCell|Row], NewCell) :- checkCell(Cell, RowCell, Res), checkList(Res, Row, NewCell).
 
-
+checkCell(X, [], X).
+checkCell(Cell, [Elem|Rest], NewCell) :- delete(Cell, Elem, Res), checkCell(Res, Rest, NewCell).
 
 
 
@@ -150,6 +151,36 @@ checkGrid2(Grid, X, Y, NewGrid) :-
     updateGrid(TGrid, Y, UpdatedRow, NewTGrid),
     transpose(NewTGrid, NewGrid), !.
 
+    
+checkGrid2(Grid, X, Y, NewGrid) :-
+    getSquares(Grid, Squares),
+    ResultX is X div 3,
+    ResultY is Y div 3,
+    Result is 3 * ResultX + ResultY,
+    nth0(Result, Squares, Square),
+    ResultX2 is X mod 3,
+    ResultY2 is Y mod 3,
+    nth0(ResultX2, Square, RowSquare),
+    nth0(ResultY2, RowSquare, Cell),
+    delete_at(ResultY2, RowSquare, NewRowSquare),
+    delete_at(ResultX2, Square, RestRows),
+    append(RestRows, List),
+    append(List, NewRowSquare, FullList),
+    checkList(Cell, FullList, NewCell),
+    length(NewCell, 1),
+    nth0(ResultY2, NewRow, NewCell),
+    delete_at(ResultY2, NewRow, NewRowSquare),
+    nth0(ResultX2, NewSquare, NewRow),
+    delete_at(ResultX2, NewSquare, RestRows),
+    nth0(Result, NewSquares, NewSquare),
+    delete_at(Result, Squares, RestSquares),
+    delete_at(Result, NewSquares, RestSquares),
+    gridFromSquares(NewSquares, NewGrid).
+
+    
+
+checkGrid2(Grid, _, _, Grid).
+
 
 delete_at(0, [_|Tail], Tail) :- !.
 
@@ -171,5 +202,16 @@ transformIRRow([], []).
 transformIRRow([[Elem]| RowRest], [Elem|NewRowRest]) :- transformIRRow(RowRest, NewRowRest).
 
 init([[3, -1, 6, 5, -1, 8, 4, -1, -1], [5, 2, -1, -1, -1, -1, -1, -1, -1], [-1, 8, 7, -1, -1, -1, -1, 3, 1], [-1, -1, 3, -1, 1, -1, -1, 8, -1], [9, -1, -1, 8, 6, 3, -1, -1, 5], [-1, 5, -1, -1, 9, -1, 6, -1, -1], [1, 3, -1, -1, -1, -1, 2, 5, -1], [-1, -1, -1, -1, -1, -1, -1, 7, 4], [-1, -1, 5, 2, -1, 6, 3, -1, -1]]).
-
-solve(X) :- init(S), solveSudoku(S, X).
+solution([
+  [3, 1, 6, 5, 7, 8, 4, 9, 2],
+  [5, 2, 9, 1, 3, 4, 7, 6, 8],
+  [4, 8, 7, 6, 2, 9, 5, 3, 1],
+  [2, 6, 3, 4, 1, 5, 9, 8, 7],
+  [9, 7, 4, 8, 6, 3, 1, 2, 5],
+  [8, 5, 1, 7, 9, 2, 6, 4, 3],
+  [1, 3, 8, 9, 4, 7, 2, 5, 6],
+  [6, 9, 2, 3, 5, 1, 8, 7, 4],
+  [7, 4, 5, 2, 8, 6, 3, 1, 9]
+]
+).
+solve() :- init(S), solution(X), solveSudoku(S, X).
